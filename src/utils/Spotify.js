@@ -2,7 +2,7 @@ let accessToken;
 let expiresIn;
 const clientId = '6da07d5a78bb41e7a9a4a4f2e23af3f2';
 const base_url = 'https://accounts.spotify.com'
-const redirect_uri = 'http://localhost:3000';
+const redirect_uri = 'http://rzjammming.surge.sh';
 const scope = 'user-read-private%20user-read-email%20playlist-modify-private%20playlist-modify-public'
 
 const Spotify = {};
@@ -70,26 +70,40 @@ Spotify.savePlaylist = (playlistName, trackUris) => {
     headers: headers
   }).then(response => {
     return response.json();
-  }).then(jsonResponse => {
+  }, responseError => console.log(responseError.message)
+).then(jsonResponse => {
+    userId = jsonResponse.id
     return jsonResponse.id;
-  }).then(id => {
+  }, jsonResponseError => console.log(jsonResponseError.messsage)
+).then(id => {
     fetch(`https://api.spotify.com/v1/users/${id}/playlists`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${currentToken}`,
         'Content-Type': 'application/json'
       }, 
-      body: {
-        name: playlistName,
-        public: true
-      }
+      body: JSON.stringify({name: playlistName, public: true})
     }).then(response => {
-      console.log(response)
-    }, error => console.log(error.message)
-    )
+      if(response.ok) {
+        return response.json();
+      }
+    }, createPlaylistError => console.log(createPlaylistError.message)
+    ).then(jsonResponse => {
+      playlistId = jsonResponse.id;
+      return jsonResponse.id;
+    }, createPlaylistJsonError => console.log(createPlaylistJsonError.message)
+  ).then(newPlaylistId => {
+    fetch(`https://api.spotify.com/v1/users/${userId}/playlists/${newPlaylistId}/tracks`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${currentToken}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({uris: trackUris})
+    })
   })
-
-
+  }, idResponseError => console.log(idResponseError.message)
+)
 }
 
 export default Spotify;
