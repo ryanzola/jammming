@@ -62,46 +62,39 @@ Spotify.savePlaylist = (playlistName, trackUris) => {
   }
 
   let userId;
+  let playlistId;
   let currentToken = accessToken;
-  let headers = { 'Authorization': `Bearer ${currentToken}`}
+  let headers = { 'Authorization': `Bearer ${currentToken}`, 'Content-Type': 'application/json'};
 
-  return fetch('https://api.spotify.com/v1/me', { /* fetch user information */
-    headers: headers
-  }).then(response => {     /* user infomation response */
-    return response.json();
-  }, responseError => console.log(responseError.message)
-  ).then(jsonResponse => {  /* user infomation json */
-      userId = jsonResponse.id
-      return jsonResponse.id;
-    }, jsonResponseError => console.log(jsonResponseError.messsage)
-  ).then(id => {            /* user id */
-      fetch(`https://api.spotify.com/v1/users/${id}/playlists`, {   /* fetch user playlists */
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${currentToken}`,
-          'Content-Type': 'application/json'
-        }, 
-        body: JSON.stringify({name: playlistName, public: true})
-      }).then(response => {   /* create playlist response */
-        if(response.ok) {
-          return response.json();
-        }
-      }, createPlaylistError => console.log(createPlaylistError.message)
-      ).then(jsonResponse => {    /* create playlist json */
-        return jsonResponse.id;
-      }, createPlaylistJsonError => console.log(createPlaylistJsonError.message)
-    ).then(newPlaylistId => {     /* new playlist id */
-      fetch(`https://api.spotify.com/v1/users/${userId}/playlists/${newPlaylistId}/tracks`, { /* post tracks to the new playlist */
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${currentToken}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({uris: trackUris})
-      })
-    })
-    }, idResponseError => console.log(idResponseError.message)
-  )
+  return fetch('https://api.spotify.com/v1/me', {
+    headers: {'Authorization': `Bearer ${currentToken}`}
+  }).then(userResponse => {           // get the user
+    if(userResponse.ok) {
+      return userResponse.json();
+    }
+  }).then(userJson => {               // parse user json
+    return userJson.id;
+  }).then(id => {                     // get user id and attempt to create the playlist
+    userId = id;
+    return fetch(`https://api.spotify.com/v1/users/${userId}/playlists`, {
+      method: 'POST',
+      headers: headers,
+      body: JSON.stringify({name: playlistName, public: true})
+    });
+  }).then(createPlaylistResponse => {  // playlist creation response
+    if(createPlaylistResponse.ok) {
+      return createPlaylistResponse.json();
+    }
+  }).then(createPlaylistJson => {     // parse new playlist json
+    return createPlaylistJson.id;
+  }).then(newPlaylistId => {          // get playlist id and attempt to add tracks
+    playlistId = newPlaylistId;
+    return fetch(`https://api.spotify.com/v1/users/${userId}/playlists/${playlistId}/tracks`, {
+      method: 'POST',
+      headers: headers,
+      body: JSON.stringify({uris: trackUris})
+    });
+  })
 }
 
 export default Spotify;
